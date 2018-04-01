@@ -3,3 +3,8 @@
 
 #Intellij
 .idea
+
+#Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
