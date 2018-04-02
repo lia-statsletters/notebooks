@@ -19,27 +19,32 @@ def generateData(distCallable,param,kwargsx,nsamples,year='2017'):
             'enddates':startdates+lengths,
             'lengths':lengths}
 
-def radAngletoCoordinates(latcenter, longcenter, radius, angle, lengthDegree=111.69):
-    """given a center of reference in DECIMAL degrees (latcenter, longcenter)
-    and a point in polar coordinates, returns DECIMAL coordinates of
-    polar point.
-    Note 1: Trust this method  for less than 100km radius.
-    Note 2: Default parameters are biased towards top of northern hemisphere.
-    1 deg of Long = cos(lat in decimal degrees) * length of degree at that lat (km) """
 
-    assert (radius <= 100.),'Radius {} too big. Try less than 100km.'.format(radius)
-    #radius^2=(X-x0)^2+(Y-y0)^2
-    #cos(angle)=x
-    #km for x (longitude, meridian)
+def haversine(p1, p2, earthrad=6371.):
 
+    """
+    long and lat in decimal degrees.
+    The haversine formula determines the great-circle distance between two points on a
+    sphere given their longitudes and latitudes. Gives as-the-crow-flies distance between points.
+    Check: https://en.wikipedia.org/wiki/Haversine_formula
+    Based on: https://stackoverflow.com/questions/29545704/fast-haversine-approximation-python-pandas"""
+    lon1, lat1, lon2, lat2 = map(np.radians,
+                                 [p1['lon'], p1['lat'], p2['lon'], p2['lat']])
 
-    #km for y (latitude, parallel)
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = np.power(np.sin(dlat / 2.0), 2) + np.cos(lat1) * np.cos(lat2) * np.power(np.sin(dlon / 2.0),2)
+
+    c = 2. * np.arcsin(np.sqrt(a))
+    return earthrad * c
 
 
 
 def main():
-    generateData(spst.genpareto, 1.,
-                 {'loc':1800.,'scale':3.}, 10000)
+    #generateData(spst.genpareto, 1.,
+    #             {'loc':1800.,'scale':3.}, 10000)
+    print(haversine({'lat':57.7090,'lon':11.9745},{'lat': 57.75,'lon':11.975}) )
 
 
 if __name__ == "__main__":
