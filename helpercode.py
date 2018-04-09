@@ -23,7 +23,7 @@ def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
 def generateLocations(nlocations,rad,center,earthrad=6371.,param=3):
     """Generate nlocations at max rad radius (in km) of a center.
     center is given in {'lon': ,'lat':}.
-    param is the parameter of the powerlaw used to generate locations"""
+    param is the parameter of the powerlaw used to generate radious"""
     #Generate radios and angles
     radx = spst.powerlaw.rvs(param, size=nlocations) * rad
     angles = spst.cosine.rvs(size=nlocations) # this dist makes angles in radians
