@@ -20,14 +20,67 @@ def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
             'lengths':lengths}
 
 
-def generateLocations(nlocations,rad,center,earthrad=6371.,param=3):
+
+def generateLocations(nlocations,rad,center):
+    """
+    Assumption warning: xtremely lazily treating lat and long as Y and X in cartesian.
+    Use simple rules:
+        - 1 degree lat = 110.5 kms
+        - 1 degree long = 111.320* cos(latitude) kms
+        center is given in {'lon': ,'lat':}
+        consider: https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude
+        and: https://stackoverflow.com/questions/1253499/simple-calculations-for-working-with-lat-lon-km-distance
+
+
+    """
+    # Rotation matrix x'= xcos(theta)+ysin(theta), y'=-xsin(theta)+ycos(theta)
+    thetas = spst.uniform.rvs(loc=0, scale=2*np.pi, size=nlocations)  # radians
+    sinthetas = np.sin(thetas)
+    costhetas = np.cos(thetas)
+
+    # Generate what to add on lat (Y), lon (X) in kms
+    Y = spst.uniform.rvs(size=nlocations)*rad
+
+    lats = center['lat'] + Y * costhetas/110.5
+    lons = center['lon']+ Y * sinthetas/(111.320*np.cos(lats))
+
+
+    return{'lat':lats,
+           'lon':lons}
+
+
+def generateLocations3(nlocations,rad,center):
+    """Use simple rules:
+        - 1 degree lat = 110.5 kms
+        - 1 degree long = 111.320* cos(latitude) kms
+        center is given in {'lon': ,'lat':}
+        consider: https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude
+        and: https://stackoverflow.com/questions/1253499/simple-calculations-for-working-with-lat-lon-km-distance
+    """
+    clat=np.radians(center['lat'])
+
+    #get a lazy percentage of the radius we want to capture in latitudes
+    lazyp=spst.uniform.rvs(size=nlocations)*rad
+    #use a quadrant mask to decide the position of the point with respect to the center
+    quatrantmask=np.random.choice([1,-1],nlocations)
+    lats=center['lat']+quatrantmask*lazyp/110.5
+    #make another draw in the quadrant mask and for the lazy radius
+    quatrantmask = np.random.choice([1, -1], nlocations)
+    lazyp = spst.uniform.rvs(size=nlocations) * rad
+    return {'lat': lats, 'lon': center['lon']+quatrantmask*lazyp/111.320*np.cos(lats)}
+
+
+def generateLocations2(nlocations,rad,center,earthrad=6371.):
+    #TODO: clean this up
     """Generate nlocations at max rad radius (in km) of a center.
     center is given in {'lon': ,'lat':}.
-    param is the parameter of the powerlaw used to generate radious"""
+    """
     #Generate radios and angles
-    radx = spst.powerlaw.rvs(param, size=nlocations) * rad
-    angles = spst.cosine.rvs(size=nlocations) # this dist makes angles in radians
+    radx = spst.uniform.rvs(size=nlocations) * rad
+    angles = np.pi*spst.uniform.rvs(size=nlocations) # in radians
 
+    #TODO:Here is the problem: the reference frame of the polars is different.
+    #I should not have used this expression here.
     #place points in cartesian
     x=radx*np.cos(angles)
     y=radx*np.sin(angles)
