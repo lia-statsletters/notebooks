@@ -30,24 +30,30 @@ def write_to_queue(message_attrs, message_body,
 
 
 def main():
+    playwithqueues()
+
+
+def playwithqueues():
     queue_url = 'https://eu-west-1.queue.amazonaws.com/901610709743/boto_tut_sqs'
     sqs_client = boto3.client('sqs')
     pp = pprint.PrettyPrinter(indent=4)
 
-    #Make some message to send to the queue
-    message_attrs={'Title': {'DataType': 'String',
-                             'StringValue': 'sometitle_tut'
-                            }
-                  }
-    message_body=('some_message_body_tut')
+    # Read the whole queue
+    pp.pprint(read_queue(queue_url, sqs_client))
 
-    #Send the message to the queue
-    #confirmation=write_to_queue(message_attrs, message_body,
+    # Make some message to send to the queue
+    message_attrs = {'Title': {'DataType': 'String',
+                               'StringValue': 'sometitle_tut'
+                               }
+                     }
+    #message_body = ('some_message_body_tut')
+
+    # Send the message to the queue
+    # confirmation=write_to_queue(message_attrs, message_body,
     #               queue_url, sqs_client, delay_secs=0)
-    #pp.pprint(confirmation)
+    # pp.pprint(confirmation)
 
-    #Read the whole queue
-    pp.pprint(read_queue(queue_url,sqs_client))
+
 
 if __name__ == "__main__":
     main()
