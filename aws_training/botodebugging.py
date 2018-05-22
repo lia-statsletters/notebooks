@@ -1,5 +1,13 @@
 import pprint
 
+#Other - CLI:
+# - Create a bucket
+# - Create a queue
+# - Creating a lambda (telling aws that a package is a lambda, and its metadata)
+#
+# Other - Lambdas:
+# - Reading from Environmental variables
+
 def read_queue(queue_url,sqs_client):
     """Barebones reader for everything in a queue."""
     response = sqs_client.receive_message(QueueUrl=queue_url)
@@ -30,7 +38,7 @@ def write_to_queue(message_attrs, message_body,
 
 def main():
     #playwithqueues()
-    playwithDynamo()
+    #playwithDynamo()
 
 def playwithDynamo():
 
