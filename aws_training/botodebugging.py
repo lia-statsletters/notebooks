@@ -38,7 +38,7 @@ def write_to_queue(message_attrs, message_body,
 
 def main():
     #playwithqueues()
-    #playwithDynamo()
+    playwithDynamo()
 
 def playwithDynamo():
 
