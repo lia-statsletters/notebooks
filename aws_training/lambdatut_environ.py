@@ -1,13 +1,14 @@
-import os
+from os import environ as envx
 
 def handler(event, context):
     try:
-        print('Executing {} v.{}, weights {} MB in memory.'
-              ''.format(os.environ['AWS_LAMBDA_FUNCTION_NAME'],
-                        os.environ['AWS_LAMBDA_FUNCTION_VERSION'],
-                        os.environ['AWS_LAMBDA_FUNCTION_MEMORY_SIZE']))
+        printable='lulz Executing {} v.{}, weights {} MB in memory.'.format(envx['AWS_LAMBDA_FUNCTION_NAME'],
+                        envx['AWS_LAMBDA_FUNCTION_VERSION'],
+                        envx['AWS_LAMBDA_FUNCTION_MEMORY_SIZE'])
     except Exception as wtf:
         print(wtf.message)
+    print(printable)
+    return printable
 
 
 def main():
