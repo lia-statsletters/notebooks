@@ -1,2 +1,2 @@
 # notebooks
-Some jupyter notebooks on various topics
+Some notes on various topics.
