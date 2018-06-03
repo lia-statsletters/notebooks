@@ -7,7 +7,11 @@ from decimal import *
 
 def generateLengths(distCallable,param,kwargsx,nsamples):
     #generates lengths in seconds
-    return np.array(distCallable.rvs(param, size=nsamples, **kwargsx), dtype='timedelta64[s]')
+    returnable=np.array(distCallable.rvs(param, size=nsamples, **kwargsx), dtype='timedelta64[s]')
+    if nsamples>1:
+        return returnable
+    return returnable[0]
+
 
 def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
     """distCallable is a distribution from scipy.stats,
@@ -47,8 +51,14 @@ def generateLocations(nlocations,rad,center,prefix='start'):
     lats = center['lat'] + Y * costhetas/110.5
     lons = center['lon']+ Y * sinthetas/(111.320*np.cos(lats))
 
-    return{'{}lat'.format(prefix):list(map(Decimal,lats.astype(str))),
-           '{}lon'.format(prefix):list(map(Decimal,lons.astype(str)))}
+
+    returnable={'{}lat'.format(prefix):list(map(Decimal,lats.astype(str))),
+               '{}lon'.format(prefix):list(map(Decimal,lons.astype(str)))}
+    if nlocations > 1:
+        return returnable
+    #otherwise, return as scalar
+    return {'{}lat'.format(prefix): returnable['{}lat'.format(prefix)][0],
+            '{}lon'.format(prefix): returnable['{}lon'.format(prefix)][0]}
 
 def generator_simple(samples,radio,init_lat,init_lon):
     #relies on environ
@@ -65,7 +75,7 @@ def generator_simple(samples,radio,init_lat,init_lon):
 
     return returnable
 
-def write_data_to_Dynamo(dict_of_lists_to_write,aKey,base=0):
+def write_to_Dynamo(dict_of_lists_to_write,aKey):
     try: #attempt to write "outdata" into "parrotbot" Dynamo table.
         dynamodb = boto3.resource('dynamodb')
         parrot_table_name=envx['parrotbot_dynamo_buffer_name']
@@ -82,18 +92,28 @@ def parrotgen_instant_handler(event,context):
         init_lat = float(envx['parrotbot_init_lat'])
         init_lon = float(envx['parrotbot_init_lon'])
         radio = float(envx['parrotbot_radio'])
-        returnable={}
-        returnable.update(generateLocations(1, radio,
+        outdata={}
+        outdata.update(generateLocations(1, radio,
                                             {'lat': init_lat, 'lon': init_lon},
                                             prefix='start'))
-        returnable.update(generateLocations(1, radio,
+        outdata.update(generateLocations(1, radio,
                                             {'lat': init_lat, 'lon': init_lon},
                                             prefix='end'))
         lengths = generateLengths(spst.genpareto, 1.,
                                 {'loc':1800.,'scale':3.}, 1)
-        returnable.update({'startdates': np.datetime64('now')})
-        returnable.update({returnable['startdates']+lengths[0]})
-        print(returnable)
+        now=np.datetime64('now')
+        outdata.update({'startdates': now.astype(str)})
+        outdata.update({'enddates':(now+lengths).astype(str)})
+        outdata.update({'lenghts':int(lengths.astype(int))})
+
+        dynamodb = boto3.resource('dynamodb')
+        parrot_table_name = envx['parrotbot_dynamo_buffer_name']
+        table = dynamodb.Table(parrot_table_name)
+        table.put_item(Item=outdata)
+        #TODO: MAKE SURE WE CAN DO A PUT OPERATION HERE.
+
+        print(outdata)
+
     except Exception as wtf:
         print(wtf)
 
@@ -110,7 +130,8 @@ def parrotgen_historic_handler(event, context):
         print(wtf)
 
 def main():
-    parrotgen_historic_handler(0,0)
+    #parrotgen_historic_handler(0,0)
+    parrotgen_instant_handler(0,0)
 
 if __name__ == "__main__":
     main()
