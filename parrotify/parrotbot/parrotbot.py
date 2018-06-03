@@ -5,6 +5,9 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from decimal import *
 
+def generateLengths(distCallable,param,kwargsx,nsamples):
+    #generates lengths in seconds
+    return np.array(distCallable.rvs(param, size=nsamples, **kwargsx), dtype='timedelta64[s]')
 
 def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
     """distCallable is a distribution from scipy.stats,
@@ -17,7 +20,7 @@ def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
     # make all dates in a year (365)
     allyear = np.arange('{}-01'.format(year), '{}-12'.format(year),dtype='datetime64[m]')
     startdates=np.random.choice(allyear,size=nsamples) #select whatever stating dates uniformly
-    lengths=np.array(distCallable.rvs(param,size=nsamples,**kwargsx),dtype='timedelta64[s]') #
+    lengths=generateLengths(distCallable,param,kwargsx,nsamples)
     ends=startdates+lengths
     return {'startdates':(startdates.astype(str)).tolist(),
             'enddates':(ends.astype(str)).tolist(),
@@ -67,43 +70,47 @@ def write_data_to_Dynamo(dict_of_lists_to_write,aKey,base=0):
         dynamodb = boto3.resource('dynamodb')
         parrot_table_name=envx['parrotbot_dynamo_buffer_name']
         table=dynamodb.Table(parrot_table_name)
-        # get biggest booking_ID in buffer to maintain counters
-        answer=table.query(Limit=1,
-                           #ScanIndexForward=False,
-                           KeyConditionExpression=Key('booking_ID').gt(0)
-                           )
-        answer=answer[0]
 
         for booking_ID,item in enumerate(dict_of_lists_to_write[aKey]):
             itemx={key:item for key in dict_of_lists_to_write}
-            itemx['booking_ID']=booking_ID+answer
             table.put_item(Item=itemx)
     except Exception as wtf:
         print(wtf)
-        return "error!"
+
+def parrotgen_instant_handler(event,context):
+    try:
+        init_lat = float(envx['parrotbot_init_lat'])
+        init_lon = float(envx['parrotbot_init_lon'])
+        radio = float(envx['parrotbot_radio'])
+        returnable={}
+        returnable.update(generateLocations(1, radio,
+                                            {'lat': init_lat, 'lon': init_lon},
+                                            prefix='start'))
+        returnable.update(generateLocations(1, radio,
+                                            {'lat': init_lat, 'lon': init_lon},
+                                            prefix='end'))
+        lengths = generateLengths(spst.genpareto, 1.,
+                                {'loc':1800.,'scale':3.}, 1)
+        returnable.update({'startdates': np.datetime64('now')})
+        returnable.update({returnable['startdates']+lengths[0]})
+        print(returnable)
+    except Exception as wtf:
+        print(wtf)
 
 
-def parrotgen_handler(event, context):
+def parrotgen_historic_handler(event, context):
     try:
         samples = int(envx['parrotbot_number_of_samples'])
         init_lat = float(envx['parrotbot_init_lat'])
         init_lon = float(envx['parrotbot_init_lon'])
         radio = float(envx['parrotbot_radio'])
-        printable='Executing {} v.{}, weighting {} MB in memory. ' \
-                  'Build {} samples at (lat:{},lon:{}) in a radio of {} ' \
-                  'km'.format(envx['AWS_LAMBDA_FUNCTION_NAME'],
-                        envx['AWS_LAMBDA_FUNCTION_VERSION'],
-                        envx['AWS_LAMBDA_FUNCTION_MEMORY_SIZE'],
-                        samples,init_lat,init_lon,radio)
-        print(printable)
         outdata=generator_simple(samples,radio,init_lat,init_lon)
         write_data_to_Dynamo(outdata, 'startdates')
     except Exception as wtf:
         print(wtf)
-        return "error!"
 
 def main():
-    parrotgen_handler(0,0)
+    parrotgen_historic_handler(0,0)
 
 if __name__ == "__main__":
     main()
