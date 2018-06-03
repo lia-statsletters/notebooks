@@ -1,7 +1,9 @@
 from scipy import stats as spst
 import numpy as np
-from numpy import timedelta64 as td64
 from os import environ as envx
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+from decimal import *
 
 
 def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
@@ -13,13 +15,13 @@ def generateTimeData(distCallable,param,kwargsx,nsamples,year='2017'):
     #Todo: favour weekends, week 52, spring and summer on selecting starting dates.
 
     # make all dates in a year (365)
-    allyear = np.arange('{}-01'.format(year), '{}-12'.format(year),dtype='datetime64[D]')
+    allyear = np.arange('{}-01'.format(year), '{}-12'.format(year),dtype='datetime64[m]')
     startdates=np.random.choice(allyear,size=nsamples) #select whatever stating dates uniformly
     lengths=np.array(distCallable.rvs(param,size=nsamples,**kwargsx),dtype='timedelta64[s]') #
     ends=startdates+lengths
-    return {'startdates':startdates.astype(str),
-            'enddates':ends.astype(str),
-            'lengths':lengths.astype(int)}
+    return {'startdates':(startdates.astype(str)).tolist(),
+            'enddates':(ends.astype(str)).tolist(),
+            'lengths':(lengths.astype(int)).tolist()}
 
 def generateLocations(nlocations,rad,center,prefix='start'):
     """
@@ -42,31 +44,8 @@ def generateLocations(nlocations,rad,center,prefix='start'):
     lats = center['lat'] + Y * costhetas/110.5
     lons = center['lon']+ Y * sinthetas/(111.320*np.cos(lats))
 
-    return{'{}lat'.format(prefix):lats,
-           '{}lon'.format(prefix):lons}
-
-def handler(event, context):
-    try:
-        samples = int(envx['parrotbot_number_of_samples'])
-        init_lat = float(envx['parrotbot_init_lat'])
-        init_lon = float(envx['parrotbot_init_lon'])
-        radio = float(envx['parrotbot_radio'])
-        printable='Executing {} v.{}, weighting {} MB in memory. ' \
-                  'Build {} samples at (lat:{},lon:{}) in a radio of {} ' \
-                  'km'.format(envx['AWS_LAMBDA_FUNCTION_NAME'],
-                        envx['AWS_LAMBDA_FUNCTION_VERSION'],
-                        envx['AWS_LAMBDA_FUNCTION_MEMORY_SIZE'],
-                        samples,init_lat,init_lon,radio)
-        print(printable)
-        out=generator_simple(samples,radio,init_lat,init_lon)
-        print(out)
-
-    except Exception as wtf:
-        print(wtf.message)
-        return wtf.message
-
-    return out
-
+    return{'{}lat'.format(prefix):list(map(Decimal,lats.astype(str))),
+           '{}lon'.format(prefix):list(map(Decimal,lons.astype(str)))}
 
 def generator_simple(samples,radio,init_lat,init_lon):
     #relies on environ
@@ -83,9 +62,48 @@ def generator_simple(samples,radio,init_lat,init_lon):
 
     return returnable
 
+def write_data_to_Dynamo(dict_of_lists_to_write,aKey,base=0):
+    try: #attempt to write "outdata" into "parrotbot" Dynamo table.
+        dynamodb = boto3.resource('dynamodb')
+        parrot_table_name=envx['parrotbot_dynamo_buffer_name']
+        table=dynamodb.Table(parrot_table_name)
+        # get biggest booking_ID in buffer to maintain counters
+        answer=table.query(Limit=1,
+                           #ScanIndexForward=False,
+                           KeyConditionExpression=Key('booking_ID').gt(0)
+                           )
+        answer=answer[0]
+
+        for booking_ID,item in enumerate(dict_of_lists_to_write[aKey]):
+            itemx={key:item for key in dict_of_lists_to_write}
+            itemx['booking_ID']=booking_ID+answer
+            table.put_item(Item=itemx)
+    except Exception as wtf:
+        print(wtf)
+        return "error!"
+
+
+def parrotgen_handler(event, context):
+    try:
+        samples = int(envx['parrotbot_number_of_samples'])
+        init_lat = float(envx['parrotbot_init_lat'])
+        init_lon = float(envx['parrotbot_init_lon'])
+        radio = float(envx['parrotbot_radio'])
+        printable='Executing {} v.{}, weighting {} MB in memory. ' \
+                  'Build {} samples at (lat:{},lon:{}) in a radio of {} ' \
+                  'km'.format(envx['AWS_LAMBDA_FUNCTION_NAME'],
+                        envx['AWS_LAMBDA_FUNCTION_VERSION'],
+                        envx['AWS_LAMBDA_FUNCTION_MEMORY_SIZE'],
+                        samples,init_lat,init_lon,radio)
+        print(printable)
+        outdata=generator_simple(samples,radio,init_lat,init_lon)
+        write_data_to_Dynamo(outdata, 'startdates')
+    except Exception as wtf:
+        print(wtf)
+        return "error!"
+
 def main():
-    handler(0,0)
+    parrotgen_handler(0,0)
 
 if __name__ == "__main__":
     main()
-
