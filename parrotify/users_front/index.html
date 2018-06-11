@@ -12,6 +12,7 @@
   <style>
     .bg-1 {  
 	  height: 100vw;
+	  width: 80vw;
    }
 	  
   .bg-2 { 
@@ -20,24 +21,113 @@
       font-family: Arial, Helvetica, sans-serif;
 	  padding-top: 70px;
       padding-bottom: 70px;
+      width: device-width, initial-scale=0.8;
+      margin: auto
   }
 
   .margin {margin-bottom: 45px;}
   </style>
 </head>
 <body>
+<div class="container-fluid bg-1">
+<div class="container-fluid text-center bg-2">
 
-<div class="container-fluid">
- <div class="d-flex flex-column align-content-center bg-2 text-center">
+ <div class="d-flex flex-column my-auto">
 		<h1>Parrots!</h1>
 		<img src="bird.jpg" class="rounded-circle mx-auto d-block margin" style="max-width:30%;" alt="Bird" >
 				
-				<div class = "mx-auto d-block margin">
-				  <button type="button" class="btn btn-lg">Hail a parrot</button>
-				</div>
+		<div class = "mx-auto d-block margin">
+		    <button type="button" class="btn btn-lg" data-toggle="modal" data-target="#hailparrot">Hail a parrot</button>
+		</div>
 	</div>
   </div>
- 
+
+<div class="modal" id="hailparrot">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h4 class="hail-a-parrot">Hail-a-parrot  Booking</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+	<h4>Todo: get an address to test this, get keys and permissions from google api</h4>
+	<p>https://developers.google.com/maps/documentation/javascript/get-api-key#registering-authorized-urls</p>
+	<p>Booking ends automatically when the parrot is returned.</p>
+	
+	<div class="card">
+	    <div class="card-body">
+	      <h4 class="card-title">Booking info</h4>
+	      <p class="card-text">Starts:</p>
+              <p id="current-date"></p>
+	    </div>
+               <p> the map goes here </p>
+              <div id="map"></div>
+	</div>
+
+        <!-- script to get timestamp -->
+	<script>
+	var d = new Date();
+	document.getElementById("current-date").innerHTML = d;
+	</script>
+
+        <!-- Borrowing location access from google geolocation tutorial -->
+	    <script>
+	      // Note: This example requires that you consent to location sharing when
+	      // prompted by your browser. If you see the error "The Geolocation service
+	      // failed.", it means you probably did not give permission for the browser to
+	      // locate you.
+	      var map, infoWindow;
+	      function initMap() {
+		map = new google.maps.Map(document.getElementById('map'), {
+		  center: {lat: -34.397, lng: 150.644},
+		  zoom: 6
+		});
+		infoWindow = new google.maps.InfoWindow;
+
+		// Try HTML5 geolocation.
+		if (navigator.geolocation) {
+		  navigator.geolocation.getCurrentPosition(function(position) {
+		    var pos = {
+		      lat: position.coords.latitude,
+		      lng: position.coords.longitude
+		    };
+
+		    infoWindow.setPosition(pos);
+		    infoWindow.setContent('Location found.');
+		    infoWindow.open(map);
+		    map.setCenter(pos);
+		  }, function() {
+		    handleLocationError(true, infoWindow, map.getCenter());
+		  });
+		} else {
+		  // Browser doesn't support Geolocation
+		  handleLocationError(false, infoWindow, map.getCenter());
+		}
+	      }
+
+	      function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+		infoWindow.setPosition(pos);
+		infoWindow.setContent(browserHasGeolocation ?
+		                      'Error: The Geolocation service failed.' :
+		                      'Error: Your browser doesn\'t support geolocation.');
+		infoWindow.open(map);
+	      }
+	    </script>
+	    <script async defer
+	    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+	    </script>
+	      </div>
+      </div>    
+
+    </div>
+  </div>
+</div>
+
+</div> 
 </div>
 </body>
 </html>
