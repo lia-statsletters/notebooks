@@ -125,13 +125,13 @@ def parrotgen_historic_handler(event, context):
         init_lon = float(envx['parrotbot_init_lon'])
         radio = float(envx['parrotbot_radio'])
         outdata=generator_simple(samples,radio,init_lat,init_lon)
-        write_data_to_Dynamo(outdata, 'startdates')
+        write_to_Dynamo(outdata, 'startdates')
     except Exception as wtf:
         print(wtf)
 
 def main():
-    #parrotgen_historic_handler(0,0)
-    parrotgen_instant_handler(0,0)
+    parrotgen_historic_handler(0,0)
+    #parrotgen_instant_handler(0,0)
 
 if __name__ == "__main__":
     main()
