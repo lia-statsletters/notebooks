@@ -14,10 +14,13 @@ def generatePurchaseData():
              of each purchase.
 
         The "purchasing" function can be as arbitrary or informed as
-        we want it to be. I want to use it to model different hypotheses for
-        purchases and user models.
+        we want it to be. I want to use it to model different relations between
+        purchasing and user models.
+
+        Populations of purchases and users can be generated separately with
+        other functions.
     """
-    #To-Do: This is a stub.
+    #To-Do: This is a stub. Assorted patterns for generators below.
     returnable=np.array(distCallable.rvs(param, size=nsamples, **kwargsx), dtype='timedelta64[s]')
 
     # make all dates in a year (365)
