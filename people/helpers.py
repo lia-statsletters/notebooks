@@ -1,10 +1,9 @@
 from scipy import stats as spst
 import numpy as np
-import boto3
 
-from decimal import *
-
-def generatePurchaseData():
+def generatePurchaseData(n,k,user_labels,purchase_labels,
+                         userGenFunc,purchaseGenFunc,
+                         purchasingFunc):
     """Generates data matching the following conditions:
             - Set N has "n" users, each user has "x" attributes.
             - Set K has "k" purchases, each purchase has "y" attributes.
@@ -19,12 +18,34 @@ def generatePurchaseData():
 
         Populations of purchases and users can be generated separately with
         other functions.
+
+        To generate dependent populations (purchase populations depending on user
+        populations and vice-versa) the *intended* use pattern is placing the
+        independent population as part of the kwargs.
+
     """
+
     #To-Do: This is a stub. Assorted patterns for generators below.
-    returnable=np.array(distCallable.rvs(param, size=nsamples, **kwargsx), dtype='timedelta64[s]')
+    N = makePopulation(n,user_labels,userGenFunc)
+    K = makePopulation(k,purchase_labels,
+                       purchaseGenFunc,
+                       users=N)
+    return purchasingFunc(N,K)
 
-    # make all dates in a year (365)
-    allyear = np.arange('{}-01'.format(year), '{}-12'.format(year),dtype='datetime64[m]')
-    startdates=np.random.choice(allyear,size=nsamples) #select whatever stating dates uniformly
+def makePopulation(howmany,feature_labels,genFunc,**kwargs):
+    """
+    :param howmany: number of rows to generate
+    :param feature_labels: labels for user features
+    :param genFunc: a function returning rows and user features,
+    optionally taking kwargs.
+    :return: dictionary with feature_labels as keys and an element per row.
+    """
+    assert len(feature_labels)>0, "At least one feature please."
+    return genFunc(howmany,feature_labels,**kwargs)
 
-    return {'startdates':(startdates.astype(str)).tolist()}
+
+
+
+
+
+
