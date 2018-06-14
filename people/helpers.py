@@ -3,11 +3,11 @@ def generatePurchaseData(n,k,user_labels,spec_labels,
                          purchasingFunc):
     """Generates data matching the following conditions:
             - Set N has "n" users, each user has "x" attributes.
-            - Set K has "k" purchases, each purchase has "y" attributes.
-            - To connect any "n_i" user with a list "L" of purchases, we use
+            - Set K has "k" specs, each spec has "y" attributes.
+            - To connect any "n_i" user with a list "L" of specs, we use
              a "purchasing" function. Note that "L" is a List instead of a set
              due to the fact that is possible to have more than one instance
-             of each purchase.
+             of each spec.
 
         The "purchasing" function can be as arbitrary or informed as
         we want it to be. I want to use it to model different relations between
