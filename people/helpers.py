@@ -1,8 +1,5 @@
-from scipy import stats as spst
-import numpy as np
-
-def generatePurchaseData(n,k,user_labels,purchase_labels,
-                         userGenFunc,purchaseGenFunc,
+def generatePurchaseData(n,k,user_labels,spec_labels,
+                         userGenFunc,specGenFunc,
                          purchasingFunc):
     """Generates data matching the following conditions:
             - Set N has "n" users, each user has "x" attributes.
@@ -14,21 +11,21 @@ def generatePurchaseData(n,k,user_labels,purchase_labels,
 
         The "purchasing" function can be as arbitrary or informed as
         we want it to be. I want to use it to model different relations between
-        purchasing and user models.
+        specs and user models.
 
-        Populations of purchases and users can be generated separately with
+        Populations of specs and users can be generated separately with
         other functions.
 
-        To generate dependent populations (purchase populations depending on user
+        To generate dependent populations (spec populations depending on user
         populations and vice-versa) the *intended* use pattern is placing the
-        independent population as part of the kwargs.
+        independent population data as part of the kwargs.
 
     """
 
     #To-Do: This is a stub. Assorted patterns for generators below.
     N = makePopulation(n,user_labels,userGenFunc)
-    K = makePopulation(k,purchase_labels,
-                       purchaseGenFunc,
+    K = makePopulation(k,spec_labels,
+                       specGenFunc,
                        users=N)
     return purchasingFunc(N,K)
 
