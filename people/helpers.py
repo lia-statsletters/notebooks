@@ -31,11 +31,12 @@ def generatePurchaseData(n,k,user_labels,spec_labels,
 
 def makePopulation(howmany,feature_labels,genFunc,**kwargs):
     """
-    :param howmany: number of rows to generate
-    :param feature_labels: labels for user features
-    :param genFunc: a function returning rows and user features,
+    :param howmany: length of column vectors to generate (samples).
+    :param feature_labels: labels for user features (variables).
+    :param genFunc: a function returning a column vector per user feature,
     optionally taking kwargs.
-    :return: dictionary with feature_labels as keys and an element per row.
+    :return: dictionary with feature_labels as keys and column
+    vectors as values of length "howmany".
     """
     assert len(feature_labels)>0, "At least one feature please."
     return genFunc(howmany,feature_labels,**kwargs)
