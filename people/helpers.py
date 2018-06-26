@@ -40,10 +40,3 @@ def makePopulation(howmany,feature_labels,genFunc,**kwargs):
     """
     assert len(feature_labels)>0, "At least one feature please."
     return genFunc(howmany,feature_labels,**kwargs)
-
-
-
-
-
-
-

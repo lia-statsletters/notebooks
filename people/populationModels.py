@@ -46,8 +46,8 @@ def pop_crude(howmany,feature_labels,**kwargs):
     return samples
 
 def main():
-
-    cluster1={
+    from sklearn.cluster import AgglomerativeClustering
+    c1={
             "something": (1, 1),
             "age": (20, 35),
             "postcode": (41760,
@@ -55,7 +55,7 @@ def main():
             "percentage": 0.25
         }
 
-    cluster2={
+    c2={
             "something": (0, 5),
             "age": (30, 55),
             "postcode": (41760,
@@ -63,7 +63,7 @@ def main():
             "percentage": 0.5
         }
 
-    cluster3={
+    c3={
             "something": (0, 20),
             "age": (23, 55),
             "postcode": (41260,
@@ -71,11 +71,18 @@ def main():
             "percentage": 0.25
         }
 
-    pop_crude(100,["something","age","postcode"],
-              cluster1=cluster1,
-              cluster2=cluster2,
-              cluster3=cluster3)
-    #parrotgen_instant_handler(0,0)
+    population=pop_crude(100,["something","age","postcode"],
+              c1=c1,
+              c2=c2,
+              c3=c3)
+
+    n_clusters = len(set(population['cluster_label']))
+    fittable=np.array([population['something'],
+                           population['age']]).T
+    alg = AgglomerativeClustering(n_clusters=n_clusters, linkage='ward')
+    out = alg.fit(fittable)
+    print(alg.labels_)
+
 
 if __name__ == "__main__":
     main()
