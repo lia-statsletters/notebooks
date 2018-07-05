@@ -1,0 +1,20 @@
+{
+"c1":{
+    "something": [1, 1],
+    "age": [20, 35],
+    "postcode": [41760,41799],
+    "percentage": 0.25
+    },
+"c2":{
+    "something": [0, 5],
+    "age": [30, 55],
+    "postcode": [41760,41799],
+    "percentage": 0.5
+    },
+"c3":{
+    "something": [0, 20],
+    "age": [23, 55],
+    "postcode": [41260,41299],
+    "percentage": 0.25
+    }
+}
