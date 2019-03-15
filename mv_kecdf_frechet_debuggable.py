@@ -1,13 +1,17 @@
-from __future__ import division
+#from __future__ import division
+import pandas as pd
 
+from profilehooks import profile#, timecall
+import pstats
+import io
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as spst
 import statsmodels.api as sm
 from scipy import optimize
+import re
 
 from statsmodels.nonparametric import kernels
-
 
 kernel_func = dict(wangryzin=kernels.wang_ryzin,
                    aitchisonaitken=kernels.aitchison_aitken,
@@ -64,29 +68,20 @@ def cdf(dataxx, bw, var_type, frech_bounds=None):
                     var_type,ckertype="gaussian_cdf",
                     ukertype="aitchisonaitken_cdf",okertype='wangryzin_cdf')
 
-    if not frech_bounds:
-        for i in range(nobs):#np.shape(data_predict)[0]):
-            ze_value=ze_cdf_eval(bw, data_predict, i, var_type)
-            cdf_est.append( ze_value )
-        cdf_est = np.squeeze(cdf_est)/ nobs
-        return cdf_est
-
-    #otherwise, we have frechet bounds. Assert that cutoff exists.
-    violations=0
+    #if not frech_bounds:
     for i in range(nobs):#np.shape(data_predict)[0]):
-        ze_value = ze_cdf_eval(bw, data_predict, i, var_type)/nobs
-        if ze_value > frech_bounds['top'][i] or ze_value<frech_bounds['bottom'][i]:
-            violations+=1
-            continue
-        cdf_est.append(ze_value)
-    cdf_est = np.squeeze(cdf_est)
-    return cdf_est,violations
+        ze_value=ze_cdf_eval(bw, data_predict, i, var_type)
+        cdf_est.append( ze_value )
+    cdf_est = np.squeeze(cdf_est)/ nobs
+    return cdf_est
 
 def frechet_likelihood(bww, datax, var_type, frech_bounds, func=None, debug_mode=False,):
 
     cdf_est = cdf(datax, bww, var_type)  # frech_bounds=frech_bounds)
     d_violations = calc_frechet_fails(cdf_est, frech_bounds)
-    L= np.sum(d_violations['top'])+np.sum(d_violations['bottom'])
+    width_bound = frech_bounds['top'] - frech_bounds['bottom']
+    viols=(d_violations['top']+d_violations['bottom'])/width_bound
+    L= np.sum(viols)
 
     if debug_mode:
         nobs = len(datax)
@@ -109,7 +104,6 @@ def loo_likelihood(bww, datax, var_type, func=lambda x: x, debug_mode=False):
         L += func(f_i)
     if debug_mode:
         print('\n',bww,'Log likelihood:',-L)
-
     return -L
 
 
@@ -153,22 +147,22 @@ def adjust_shape(dat, k_vars):
     return dat
 
 def calc_frechet_fails(guinea_cdf,frechets):
-    fails = {'top': [], 'bottom': []}
-    for n in range(len(guinea_cdf)):
+    #fails = {'top': [], 'bottom': []}
+    N=len(guinea_cdf)
+    top=np.full(N,0.)
+    bot=np.full(N,0.)
+    for n in range(N):
         # n_hyper_point=np.array([x[n] for x in rd])
         xdiff=guinea_cdf[n]-frechets['top'][n]
         if xdiff>0:
-            fails['top'].append(xdiff)
-        else:
-            fails['top'].append(0.)
+            top[n]=xdiff
 
         xdiff=frechets['bottom'][n] - guinea_cdf[n]
         if xdiff>0:
-            fails['bottom'].append(xdiff)
-        else:
-            fails['bottom'].append(0.)
-    return {'top': np.array(fails['top']),
-            'bottom': np.array(fails['bottom'])}
+            bot[n]=xdiff
+
+    return {'top': top,
+            'bottom': bot}
 
 
 def count_frechet_fails(guinea_cdf,frechets):
@@ -196,20 +190,8 @@ def get_frechets(dvars):
     top_frechet = np.array([min([y[i] for y in dvars]) for i in range(n)])
     return {'top': top_frechet, 'bottom': bottom_frechet}
 
-def lets_be_tidy():
-    n = 1000
-    distr = spst.beta
-    params = {'horns': (0.5, 0.5),
-              'horns1': (0.5, 0.55),
-              'shower': (5., 2.),
-              'grower': (2., 5.)}
-    v_type = f'{"c"*len(params)}'
-    mvdata = {k: distr.rvs(*params[k], size=n) for k in params}
-    rd = np.array(list(mvdata.values()))
-
-    #get frechets and thresholds
-    frechets = get_frechets(rd)
-
+def lets_be_tidy(rd,frechets):
+    v_type = f'{"c"*len(rd)}'
     #threshold: number of violations by the cheapest method.
     dens_u_rot = sm.nonparametric.KDEMultivariate(data=rd, var_type=v_type, bw='normal_reference')
     cdf_dens_u_rot = dens_u_rot.cdf()
@@ -223,12 +205,82 @@ def lets_be_tidy():
     #for comparison, call the package and check features and time
     dens_u_ml = sm.nonparametric.KDEMultivariate(data=rd,var_type=v_type, bw='cv_ml')
 
-
-
     print(tst, '\n', dens_u_rot.bw, '\n', dens_u_ml.bw)
 
+@profile(sort='cumulative',filename='/home/lia/liaProjects/outs/experiments.txt')
+def profile_run(rd,frechets):
+    v_type = f'{"c"*len(rd)}'
+    # threshold: number of violations by the cheapest method.
+    dens_u_rot = sm.nonparametric.KDEMultivariate(data=rd, var_type=v_type, bw='normal_reference')
+    cdf_dens_u_rot = dens_u_rot.cdf()
+    violations_rot = count_frechet_fails(cdf_dens_u_rot, frechets)
+
+    bw_frechets = get_bw(rd, v_type, dens_u_rot.bw, frech_bounds=frechets)
+    #print('bw frechets: ',bw_frechets)
+    bw_cv_ml = get_bw(rd, v_type, dens_u_rot.bw)
+    #print('bw loo_likelihood: ', bw_cv_ml)
+    return bw_frechets,bw_cv_ml
+
+def generate_experiments(iters_per_sampl_sz,n,params, distr, dims):
+    bws_frechet={f'bw_{x}':[] for x in params}
+    bws_cv_ml={f'bw_{x}':[] for x in params}
+
+
+    for iteration in range(iters_per_sampl_sz):
+        mvdata = {k: distr.rvs(*params[k], size=n) for k in params}
+        rd = np.array(list(mvdata.values()))
+
+        # get frechets and thresholds
+        frechets = get_frechets(rd)
+
+        bw_frechets, bw_cv_ml=profile_run(rd, frechets)
+
+        for ix,x in enumerate(params):
+            bws_frechet[f'bw_{x}'].append(bw_frechets[ix])
+            bws_cv_ml[f'bw_{x}'].append(bw_cv_ml[ix])
+
+    pd.DataFrame(bws_frechet).to_csv(f'/home/lia/liaProjects/outs/bws_frechet_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv')
+    pd.DataFrame(bws_cv_ml).to_csv(f'/home/lia/liaProjects/outs/bws_cv_ml_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv')
+
+
+
+
+
 def main():
-    lets_be_tidy()
+    iters_per_sampl_sz = 100#[10, 5, 5, 5]
+
+    params = {#'horns': (0.5, 0.5),
+              # 'horns1': (0.45, 0.55),
+              #"'shower': (5., 2.),
+              'grower': (2., 5.),
+              'symetric': (2., 2.)
+              }
+    dims = len(params)
+    n = dims * 100  # , 1000, 3000, 5000]
+    distr = spst.beta
+
+    generate_experiments(iters_per_sampl_sz,n,params,distr,dims)
+
+    s = io.StringIO()
+    k = pstats.Stats('/home/lia/liaProjects/outs/experiments.txt', stream=s).sort_stats('cumtime')
+    k.print_stats()
+    fl = f'/home/lia/liaProjects/outs/d{dims}-n{n}-iter{iters_per_sampl_sz}.csv'
+    with open(fl, 'w+') as f:
+        f.write(s.getvalue())
+
+    k = pd.read_csv(fl,
+                    header=3, delim_whitespace=True,
+                    usecols={'ncalls', 'tottime', 'percall',
+                             'cumtime', 'filename:lineno(function)'}
+                    ).rename(columns={'filename:lineno(function)': 'from_func'}).dropna()
+    tokeep = np.where([1 if not not re.search('likelihood', x) else 0 for x in k.from_func.values])[0]
+    k = k.iloc[tokeep]
+    repl=['frechet' if not not re.search('frechet_likelihood', x) else 'loo_cv_ml' for x in k.from_func.values]
+    k['from_func']=np.array(repl)
+    k.to_csv(f'/home/lia/liaProjects/outs/summary_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv',
+             index=False)
+
+    #lets_be_tidy(rd,frechets)
 
 if __name__ == "__main__":
     main()
