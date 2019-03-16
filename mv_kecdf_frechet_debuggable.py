@@ -1,15 +1,22 @@
 #from __future__ import division
-import pandas as pd
 
 from profilehooks import profile#, timecall
+import cProfile
 import pstats
 import io
-import matplotlib.pyplot as plt
+
+
+import pandas as pd
 import numpy as np
+
 import scipy.stats as spst
 import statsmodels.api as sm
 from scipy import optimize
+
 import re
+import time
+
+import matplotlib.pyplot as plt
 
 from statsmodels.nonparametric import kernels
 
@@ -25,6 +32,23 @@ kernel_func = dict(wangryzin=kernels.wang_ryzin,
                    aitchisonaitken_cdf=kernels.aitchison_aitken_cdf,
                    wangryzin_cdf=kernels.wang_ryzin_cdf,
                    d_gaussian=kernels.d_gaussian)
+
+def lets_be_tidy(rd,frechets):
+    v_type = f'{"c"*len(rd)}'
+    #threshold: number of violations by the cheapest method.
+    dens_u_rot = sm.nonparametric.KDEMultivariate(data=rd, var_type=v_type, bw='normal_reference')
+    cdf_dens_u_rot = dens_u_rot.cdf()
+    violations_rot = count_frechet_fails(cdf_dens_u_rot, frechets)
+    #how can we best use this violations?
+    #nviolations= np.sum([np.sum(violations_rot['top']),
+    #                     np.sum(violations_rot['bottom'])])
+
+    tst = get_bw(rd, v_type, dens_u_rot.bw, frech_bounds=frechets)  # dens_u_rot.bw)
+
+    #for comparison, call the package and check features and time
+    dens_u_ml = sm.nonparametric.KDEMultivariate(data=rd,var_type=v_type, bw='cv_ml')
+
+    print(tst, '\n', dens_u_rot.bw, '\n', dens_u_ml.bw)
 
 def gpke(bwp, dataxx, data_predict, var_type, ckertype='gaussian',
          okertype='wangryzin', ukertype='aitchisonaitken', tosum=True):
@@ -42,6 +66,69 @@ def gpke(bwp, dataxx, data_predict, var_type, ckertype='gaussian',
         return dens.sum(axis=0)
     else:
         return dens
+
+def adjust_shape(dat, k_vars):
+    """ Returns an array of shape (nobs, k_vars) for use with `gpke`."""
+    dat = np.asarray(dat)
+    if dat.ndim > 2:
+        dat = np.squeeze(dat)
+    if dat.ndim == 1 and k_vars > 1:  # one obs many vars
+        nobs = 1
+    elif dat.ndim == 1 and k_vars == 1:  # one obs one var
+        nobs = len(dat)
+    else:
+        if np.shape(dat)[0] == k_vars and np.shape(dat)[1] != k_vars:
+            dat = dat.T
+
+        nobs = np.shape(dat)[0]  # ndim >1 so many obs many vars
+
+    dat = np.reshape(dat, (nobs, k_vars))
+    return dat
+
+def calc_frechet_fails(guinea_cdf,frechets):
+    #fails = {'top': [], 'bottom': []}
+    N=len(guinea_cdf)
+    top=np.full(N,0.)
+    bot=np.full(N,0.)
+    for n in range(N):
+        # n_hyper_point=np.array([x[n] for x in rd])
+        xdiff=guinea_cdf[n]-frechets['top'][n]
+        if xdiff>0:
+            top[n]=xdiff
+
+        xdiff=frechets['bottom'][n] - guinea_cdf[n]
+        if xdiff>0:
+            bot[n]=xdiff
+
+    return {'top': top,
+            'bottom': bot}
+
+
+def count_frechet_fails(guinea_cdf,frechets):
+    fails={'top':[], 'bottom':[]}
+    for n in range(len(guinea_cdf)):
+        if guinea_cdf[n]>frechets['top'][n]:
+            fails['top'].append(True)
+        else:
+            fails['top'].append(False)
+
+        if guinea_cdf[n]<frechets['bottom'][n]:
+            fails['bottom'].append(True)
+        else:
+            fails['bottom'].append(False)
+    return {'top':np.array(fails['top']),
+            'bottom':np.array(fails['bottom'])}
+
+def get_frechets(dvars):
+    d=len(dvars)
+    n=len(dvars[0])
+    dimx=np.array(range(d))
+    un=np.ones(d,dtype=int)
+    bottom_frechet = np.array([max( np.sum( dvars[dimx,un*i] ) +1-d, 0 )
+                               for i in range(n) ])
+    top_frechet = np.array([min([y[i] for y in dvars]) for i in range(n)])
+    return {'top': top_frechet, 'bottom': bottom_frechet}
+
 
 
 class LeaveOneOut(object):
@@ -128,145 +215,80 @@ def get_bw(datapfft, var_type, reference, frech_bounds=None):
     # bw = self._set_bw_bounds(bw)  # bound bw if necessary
     return bw
 
-def adjust_shape(dat, k_vars):
-    """ Returns an array of shape (nobs, k_vars) for use with `gpke`."""
-    dat = np.asarray(dat)
-    if dat.ndim > 2:
-        dat = np.squeeze(dat)
-    if dat.ndim == 1 and k_vars > 1:  # one obs many vars
-        nobs = 1
-    elif dat.ndim == 1 and k_vars == 1:  # one obs one var
-        nobs = len(dat)
-    else:
-        if np.shape(dat)[0] == k_vars and np.shape(dat)[1] != k_vars:
-            dat = dat.T
-
-        nobs = np.shape(dat)[0]  # ndim >1 so many obs many vars
-
-    dat = np.reshape(dat, (nobs, k_vars))
-    return dat
-
-def calc_frechet_fails(guinea_cdf,frechets):
-    #fails = {'top': [], 'bottom': []}
-    N=len(guinea_cdf)
-    top=np.full(N,0.)
-    bot=np.full(N,0.)
-    for n in range(N):
-        # n_hyper_point=np.array([x[n] for x in rd])
-        xdiff=guinea_cdf[n]-frechets['top'][n]
-        if xdiff>0:
-            top[n]=xdiff
-
-        xdiff=frechets['bottom'][n] - guinea_cdf[n]
-        if xdiff>0:
-            bot[n]=xdiff
-
-    return {'top': top,
-            'bottom': bot}
-
-
-def count_frechet_fails(guinea_cdf,frechets):
-    fails={'top':[], 'bottom':[]}
-    for n in range(len(guinea_cdf)):
-        if guinea_cdf[n]>frechets['top'][n]:
-            fails['top'].append(True)
-        else:
-            fails['top'].append(False)
-
-        if guinea_cdf[n]<frechets['bottom'][n]:
-            fails['bottom'].append(True)
-        else:
-            fails['bottom'].append(False)
-    return {'top':np.array(fails['top']),
-            'bottom':np.array(fails['bottom'])}
-
-def get_frechets(dvars):
-    d=len(dvars)
-    n=len(dvars[0])
-    dimx=np.array(range(d))
-    un=np.ones(d,dtype=int)
-    bottom_frechet = np.array([max( np.sum( dvars[dimx,un*i] ) +1-d, 0 )
-                               for i in range(n) ])
-    top_frechet = np.array([min([y[i] for y in dvars]) for i in range(n)])
-    return {'top': top_frechet, 'bottom': bottom_frechet}
-
-def lets_be_tidy(rd,frechets):
-    v_type = f'{"c"*len(rd)}'
-    #threshold: number of violations by the cheapest method.
-    dens_u_rot = sm.nonparametric.KDEMultivariate(data=rd, var_type=v_type, bw='normal_reference')
-    cdf_dens_u_rot = dens_u_rot.cdf()
-    violations_rot = count_frechet_fails(cdf_dens_u_rot, frechets)
-    #how can we best use this violations?
-    #nviolations= np.sum([np.sum(violations_rot['top']),
-    #                     np.sum(violations_rot['bottom'])])
-
-    tst = get_bw(rd, v_type, dens_u_rot.bw, frech_bounds=frechets)  # dens_u_rot.bw)
-
-    #for comparison, call the package and check features and time
-    dens_u_ml = sm.nonparametric.KDEMultivariate(data=rd,var_type=v_type, bw='cv_ml')
-
-    print(tst, '\n', dens_u_rot.bw, '\n', dens_u_ml.bw)
-
-@profile(sort='cumulative',filename='/home/lia/liaProjects/outs/experiments.txt')
-def profile_run(rd,frechets):
-    v_type = f'{"c"*len(rd)}'
+#@profile(sort='cumulative',filename='/home/lia/liaProjects/outs/experiments.txt')
+def profile_run(rd,frechets,iterx):
+    dims=len(rd)
+    n=len(rd[0])
+    v_type = f'{"c"*dims}'
     # threshold: number of violations by the cheapest method.
     dens_u_rot = sm.nonparametric.KDEMultivariate(data=rd, var_type=v_type, bw='normal_reference')
     cdf_dens_u_rot = dens_u_rot.cdf()
     violations_rot = count_frechet_fails(cdf_dens_u_rot, frechets)
 
+
+    #profile frechets
+    pr = cProfile.Profile()
+    pr.enable()
     bw_frechets = get_bw(rd, v_type, dens_u_rot.bw, frech_bounds=frechets)
-    #print('bw frechets: ',bw_frechets)
+    pr.disable()
+
+    s = io.StringIO()
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumtime')
+    ps.print_stats()
+    s = s.getvalue()
+
+    with open(f'/home/lia/liaProjects/outs/frechet-profile-d{dims}-n{n}-iter{iterx}.txt', 'w+') as f:
+        f.write(s)
+
+
+    #profile cv_ml
+    pr = cProfile.Profile()
+    pr.enable()
     bw_cv_ml = get_bw(rd, v_type, dens_u_rot.bw)
-    #print('bw loo_likelihood: ', bw_cv_ml)
+    pr.disable()
+
+    s = io.StringIO()
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumtime')
+    ps.print_stats()
+    s = s.getvalue()
+
+    with open(f'/home/lia/liaProjects/outs/loo-ml-profile-d{dims}-n{n}-iter{iterx}.txt', 'w+') as f:
+        f.write(s)
+
+
     return bw_frechets,bw_cv_ml
 
-def generate_experiments(iters_per_sampl_sz,n,params, distr, dims):
+
+def generate_experiments(reps,n,params, distr, dims):
     bws_frechet={f'bw_{x}':[] for x in params}
     bws_cv_ml={f'bw_{x}':[] for x in params}
 
 
-    for iteration in range(iters_per_sampl_sz):
+    for iteration in range(reps):
         mvdata = {k: distr.rvs(*params[k], size=n) for k in params}
         rd = np.array(list(mvdata.values()))
 
         # get frechets and thresholds
         frechets = get_frechets(rd)
 
-        bw_frechets, bw_cv_ml=profile_run(rd, frechets)
+        bw_frechets, bw_cv_ml=profile_run(rd, frechets,iteration)
 
         for ix,x in enumerate(params):
             bws_frechet[f'bw_{x}'].append(bw_frechets[ix])
             bws_cv_ml[f'bw_{x}'].append(bw_cv_ml[ix])
 
-    pd.DataFrame(bws_frechet).to_csv(f'/home/lia/liaProjects/outs/bws_frechet_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv')
-    pd.DataFrame(bws_cv_ml).to_csv(f'/home/lia/liaProjects/outs/bws_cv_ml_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv')
+    pd.DataFrame(bws_frechet).to_csv(f'/home/lia/liaProjects/outs/bws_frechet_d{dims}-n{n}-iter{reps}.csv')
+    pd.DataFrame(bws_cv_ml).to_csv(f'/home/lia/liaProjects/outs/bws_cv_ml_d{dims}-n{n}-iter{reps}.csv')
 
 
+def aggregate_experiments():
 
-
-
-def main():
-    iters_per_sampl_sz = 100#[10, 5, 5, 5]
-
-    params = {#'horns': (0.5, 0.5),
-              # 'horns1': (0.45, 0.55),
-              #"'shower': (5., 2.),
-              'grower': (2., 5.),
-              'symetric': (2., 2.)
-              }
-    dims = len(params)
-    n = dims * 100  # , 1000, 3000, 5000]
-    distr = spst.beta
-
-    generate_experiments(iters_per_sampl_sz,n,params,distr,dims)
-
-    s = io.StringIO()
-    k = pstats.Stats('/home/lia/liaProjects/outs/experiments.txt', stream=s).sort_stats('cumtime')
-    k.print_stats()
-    fl = f'/home/lia/liaProjects/outs/d{dims}-n{n}-iter{iters_per_sampl_sz}.csv'
-    with open(fl, 'w+') as f:
-        f.write(s.getvalue())
+    fl = f'/home/lia/liaProjects/outs/d{dims}-n{n}-reps{reps}.csv'
+    #with open(fl, 'w+') as f:
+    #    s = io.StringIO()
+    #    k = pstats.Stats('/home/lia/liaProjects/outs/experiments.txt', stream=s).sort_stats('cumtime')
+    #    k.print_stats()
+    #    f.write(s.getvalue())
 
     k = pd.read_csv(fl,
                     header=3, delim_whitespace=True,
@@ -277,8 +299,23 @@ def main():
     k = k.iloc[tokeep]
     repl=['frechet' if not not re.search('frechet_likelihood', x) else 'loo_cv_ml' for x in k.from_func.values]
     k['from_func']=np.array(repl)
-    k.to_csv(f'/home/lia/liaProjects/outs/summary_d{dims}-n{n}-iter{iters_per_sampl_sz}.csv',
+    k.to_csv(f'/home/lia/liaProjects/outs/summary_d{dims}-n{n}-reps{reps}.csv',
              index=False)
+
+def main():
+    reps = 30
+
+    params = {#'horns': (0.5, 0.5),
+              # 'horns1': (0.45, 0.55),
+              'shower': (5., 2.),
+              'grower': (2., 5.),
+              'symetric': (2., 2.)
+              }
+    dims = len(params)
+    ns = [600, 1000, 4000]
+    distr = spst.beta
+    for n in ns:
+        generate_experiments(reps,n,params,distr,dims)
 
     #lets_be_tidy(rd,frechets)
 
