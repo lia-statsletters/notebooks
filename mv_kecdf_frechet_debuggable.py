@@ -309,10 +309,10 @@ def main():
               # 'horns1': (0.45, 0.55),
               'shower': (5., 2.),
               'grower': (2., 5.),
-              'symetric': (2., 2.)
+              #'symetric': (2., 2.)
               }
     dims = len(params)
-    ns = [600, 1000, 4000]
+    ns = [300, 600, 1000, 3000, 4000]
     distr = spst.beta
     for n in ns:
         generate_experiments(reps,n,params,distr,dims)

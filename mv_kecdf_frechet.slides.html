@@ -11859,7 +11859,7 @@ a.anchor-link {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Data-science-friday-tales">Data science friday tales<a class="anchor-link" href="#Data-science-friday-tales">&#182;</a></h1><h3 id="Lia-Silva-Lopez">Lia Silva-Lopez<a class="anchor-link" href="#Lia-Silva-Lopez">&#182;</a></h3><hr>
+<h1 id="Data-science-friday-tales:">Data science friday tales:<a class="anchor-link" href="#Data-science-friday-tales:">&#182;</a></h1><h3 id="Using-Fr&#233;chet-Bounds-for-Bandwidth-selection-in-MV-Kernel-Methods.">Using Fr&#233;chet Bounds for Bandwidth selection in MV Kernel Methods.<a class="anchor-link" href="#Using-Fr&#233;chet-Bounds-for-Bandwidth-selection-in-MV-Kernel-Methods.">&#182;</a></h3><h4 id="Lia-Silva-Lopez">Lia Silva-Lopez<a class="anchor-link" href="#Lia-Silva-Lopez">&#182;</a></h4><hr>
 <p><em>Tuesday, 19/03/2019</em></p>
 
 </div>
@@ -11870,8 +11870,9 @@ a.anchor-link {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="This-story-starts-with-a-reading-accident">This story starts with a reading accident<a class="anchor-link" href="#This-story-starts-with-a-reading-accident">&#182;</a></h2><h4 id="One-moment-you-are-reading-a-book...">One moment you are reading a book...<a class="anchor-link" href="#One-moment-you-are-reading-a-book...">&#182;</a></h4><p><img src="img/reading_accident.png"></p>
-<h4 id="...And-then-something-hits-you.">...And then something hits you.<a class="anchor-link" href="#...And-then-something-hits-you.">&#182;</a></h4>
+<h2 id="This-story-starts-with-a-reading-accident">This story starts with a reading accident<a class="anchor-link" href="#This-story-starts-with-a-reading-accident">&#182;</a></h2><hr>
+<h4 id="One-moment-you-are-reading-a-book...">One moment you are reading a book...<a class="anchor-link" href="#One-moment-you-are-reading-a-book...">&#182;</a></h4><p><img src="img/reading_accident.png"></p>
+<h4 id="...And-the-next-there-are-bounds-for-everything.">...And the next there are bounds for everything.<a class="anchor-link" href="#...And-the-next-there-are-bounds-for-everything.">&#182;</a></h4>
 </div>
 </div>
 </div></section></section><section><section>
@@ -11880,12 +11881,13 @@ a.anchor-link {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Bounds-for-distributions*-in-terms-of-its-marginals?">Bounds for distributions* in terms of its marginals?<a class="anchor-link" href="#Bounds-for-distributions*-in-terms-of-its-marginals?">&#182;</a></h2><ul>
+<h2 id="Bounds-for-distributions*-in-terms-of-its-marginals?">Bounds for distributions* in terms of its marginals?<a class="anchor-link" href="#Bounds-for-distributions*-in-terms-of-its-marginals?">&#182;</a></h2><hr>
+<ul>
 <li><p>That makes perfect sense!</p>
 </li>
-<li><p>Why aren't Fréchet bounds for distributions more mainstream?</p>
+<li><p>Why aren't these bounds more mainstream?</p>
 </li>
-<li><p>Is it because it's hard to pronounce?</p>
+<li><p>Is it because it's hard to pronounce 'Fréchet'?</p>
 </li>
 </ul>
 <p>*<em>with distributions we mean CDFs, not densities</em></p>
@@ -11899,7 +11901,8 @@ a.anchor-link {
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Allright,-let's-point-the-fingers-at-ourselves:">Allright, let's point the fingers at ourselves:<a class="anchor-link" href="#Allright,-let's-point-the-fingers-at-ourselves:">&#182;</a></h2><hr>
-<h2 id="What-would-I-do-with-Fr&#233;chet-bounds?">What would <em>I</em> do with Fr&#233;chet bounds?<a class="anchor-link" href="#What-would-I-do-with-Fr&#233;chet-bounds?">&#182;</a></h2>
+<h2 id="What-would-I-do-with-Fr&#233;chet-bounds?">What would <strong>I</strong> do with Fr&#233;chet bounds?<a class="anchor-link" href="#What-would-I-do-with-Fr&#233;chet-bounds?">&#182;</a></h2><p>'Cause the <em>whole point</em> of bounds is to try not to break them. Right?</p>
+
 </div>
 </div>
 </div></section><section>
@@ -11918,29 +11921,120 @@ a.anchor-link {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Fr&#233;chet-bounds-+-BW-estimation-in-KDEs?">Fr&#233;chet bounds + BW estimation in KDEs?<a class="anchor-link" href="#Fr&#233;chet-bounds-+-BW-estimation-in-KDEs?">&#182;</a></h2><ul>
-<li><p>#### They could help prune the search options.</p>
-</li>
-<li><p>#### We use them stand-alone to construct likelihood functions.</p>
+<h2 id="An-idea:-Let's-use-them-for-Bandwidth-selection-in-MV-KDEs.">An idea: Let's use them for Bandwidth selection in MV KDEs.<a class="anchor-link" href="#An-idea:-Let's-use-them-for-Bandwidth-selection-in-MV-KDEs.">&#182;</a></h2><hr>
+<ul>
+<li>MV kernel estimation is expensive, slow and often hard to check with d&gt;2.</li>
+</ul>
+<ul>
+<li>Which is why Kernel methods are recommended for smoothing (mostly).</li>
+</ul>
+<ul>
+<li>However, working with multivariate is not easy.<ul>
+<li>So a lot of people turn to KDEs in the lack of better information.</li>
+<li>Or, throw samples at a blackbox and hope for the best.</li>
+</ul>
 </li>
 </ul>
-<p>I mean, that is <em>the whole point</em> of bounding anything at all right?</p>
 
 </div>
 </div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
 </div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="How-can-we-use-Fr&#233;chet-bounds-here?">How can we use Fr&#233;chet bounds here?<a class="anchor-link" href="#How-can-we-use-Fr&#233;chet-bounds-here?">&#182;</a></h2><hr>
+<p>There are different methods for BW selection, many based on some kind of optimization.</p>
+<ul>
+<li>To prune the search space on any iterative method:<ul>
+<li>(Naive) Removing bws that lead to estimates violating the bounds.</li>
+<li>(Less naive, but less parsinomic) prune using thresholds.</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>To construct functions to optimize over:<ul>
+<li>(Cheap, uninformative) Counting the number of violations of the bound?</li>
+<li>(Cheap, informative) Summing all diffs between each violation and the bound point?</li>
+</ul>
+</li>
+</ul>
 
 </div>
 </div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
 </div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Other-questions-to-answer-as-well:">Other questions to answer as well:<a class="anchor-link" href="#Other-questions-to-answer-as-well:">&#182;</a></h2><hr>
+<ul>
+<li><p>Are we breaking Fréchet bounds when estimating CDFs with Kernels?</p>
+<ul>
+<li>And if we break them, <ul>
+<li>How <em>badly</em> are they usually broken?</li>
+<li>Do they get broken often?</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>What are the consequences of selecting BWs that lead to breaking Fréchet?</li>
+</ul>
 
+</div>
+</div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><img src="https://memegenerator.net/img/instances/63332969/do-all-the-things.jpg"></p>
+
+</div>
+</div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="What's-in-Python-for-this?">What's in Python for this?<a class="anchor-link" href="#What's-in-Python-for-this?">&#182;</a></h2><hr>
+<ul>
+<li>Scikit-Learn, StatsModels.</li>
+</ul>
+<ul>
+<li>Only StatsModels has a convenience method to estimate CDFs with use Kernels.</li>
+</ul>
+<ul>
+<li>Code for bandwith selection methods in StatsModels can be found <a href="https://www.statsmodels.org/dev/_modules/statsmodels/nonparametric/_kernel_base.html">here</a>. </li>
+</ul>
+<ul>
+<li>A bummer: no direct way to feed ranges of hyperparameters in order to constrain the search space.<ul>
+<li>They simply call scipy.optimize.fmin underneath.</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>However, we can insert a cheap check <em>before</em> the expensive scipy call and prune away unwanted values :).</li>
+</ul>
+
+</div>
+</div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="What-did-I-do?">What did I do?<a class="anchor-link" href="#What-did-I-do?">&#182;</a></h2><hr>
+
+</div>
+</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
@@ -11973,8 +12067,7 @@ a.anchor-link {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="How-does-bandwidth-selection-look-like?">How does bandwidth selection look like?<a class="anchor-link" href="#How-does-bandwidth-selection-look-like?">&#182;</a></h3><p>Code for bandwith selection methods in StatsModels can be found <a href="https://www.statsmodels.org/dev/_modules/statsmodels/nonparametric/_kernel_base.html">here</a>.</p>
-<p>As the library is today (march 2019), there is no obviously direct way to feed ranges of hyperparameters in order to constrain the bandwidth selection process. So, I made some simple modifications to be able to affect how the base methods to calculate a bandwidth are used. Those modifications are below.</p>
+<h2 id="-"> <a class="anchor-link" href="#-">&#182;</a></h2><p><img src="https://i.kym-cdn.com/photos/images/original/000/187/324/allthethings.png"></p>
 
 </div>
 </div>
