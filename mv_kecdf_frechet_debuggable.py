@@ -305,10 +305,10 @@ def aggregate_experiments():
 def main():
     reps = 30
 
-    params = {#'horns': (0.5, 0.5),
-              # 'horns1': (0.45, 0.55),
-              'shower': (5., 2.),
-              'grower': (2., 5.),
+    params = {'horns': (0.5, 0.5),
+              'horns1': (0.45, 0.55),
+              #'shower': (5., 2.),
+              #'grower': (2., 5.),
               #'symetric': (2., 2.)
               }
     dims = len(params)
